@@ -89,72 +89,14 @@ Details about the hardware from `lshw`:
 
 User `longxia` from the `##linux` freenode IRC channel brought in the great suggestion to use `iptables` logging to see whether the packet missing in Wireshark is present there.
 
+
 ## Investigation with `iptables` logging facilities
 
-All the below is for `UDP`.
+All the below is for `UDP`. `enp3s0` is the Realtek Ethernet port.
 
-I used `iptables -I OUTPUT 1 -j LOG` from https://websistent.com/linux-iptables-log-everything/ (after doing `iptables -F`)
+I used `iptables -F && iptables -I OUTPUT 1 -j LOG && iptables -I OUTPUT 1 -j LOG`.
 
-### dmesg output
-
-```
-[4408321.228724] IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=68 TOS=0x00 PREC=0x00 TTL=64 ID=32832 PROTO=UDP SPT=53075 DPT=53 LEN=48
-[4408321.367176] IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=75 TOS=0x00 PREC=0x00 TTL=64 ID=32841 DF PROTO=UDP SPT=45686 DPT=53 LEN=55
-[4408321.368733] IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=75 TOS=0x00 PREC=0x00 TTL=64 ID=32842 DF PROTO=UDP SPT=45686 DPT=53 LEN=55
-
-[4408326.228844] IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=68 TOS=0x00 PREC=0x00 TTL=64 ID=33241 PROTO=UDP SPT=53075 DPT=53 LEN=48
-
-[4408328.612007] IN= OUT=enp3s0 SRC=192.168.1.100 DST=93.199.92.72 LEN=112 TOS=0x00 PREC=0x00 TTL=64 ID=0 DF PROTO=UDP SPT=655 DPT=802 LEN=92
-[4408331.229074] IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=68 TOS=0x00 PREC=0x00 TTL=64 ID=33489 PROTO=UDP SPT=53075 DPT=53 LEN=48
-```
-
-### dig output
-
-This is just a short note for my records as a reminder that times reported by Wireshark and dig are offset by 1 hour due to my local time settings.
-
-```
-;; WHEN: Sun Jan 27 23:01:38 CET 2019
-```
-
-In Wireshark this shows up as `22:01:38.767200222`, see
-
-* `Screenshot from 2019-01-27 23-15-29.png`
-* Capture file `dig-5-seconds-hang-wireshark-capture-investigation-with-iptables-logging.pcapng`
-  * use filter `dns.qry.name == "ifconfig.me"`
-
-### dmesg output with human times
-
-From `journalctl` with `| grep '1.1.1.1'`:
-
-```
-Jan 27 22:10:48.379473 ares dnsmasq[3663]: using nameserver 1.1.1.1#53
-Jan 27 22:14:20.966516 ares sshd[19373]: Received disconnect from 58.242.83.30 port 16151:11:  [preauth]
-Jan 27 23:01:23.906108 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=75 TOS=0x00 PREC=0x00 TTL=64 ID=32431 DF PROTO=UDP SPT=45686 DPT=53 LEN=55
-Jan 27 23:01:24.902147 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=75 TOS=0x00 PREC=0x00 TTL=64 ID=32574 DF PROTO=UDP SPT=42065 DPT=53 LEN=55
-Jan 27 23:01:24.902162 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=75 TOS=0x00 PREC=0x00 TTL=64 ID=32575 DF PROTO=UDP SPT=42065 DPT=53 LEN=55
-  -- start of the above dmesg output
-Jan 27 23:01:28.770157 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=68 TOS=0x00 PREC=0x00 TTL=64 ID=32832 PROTO=UDP SPT=53075 DPT=53 LEN=48
-Jan 27 23:01:28.906128 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=75 TOS=0x00 PREC=0x00 TTL=64 ID=32841 DF PROTO=UDP SPT=45686 DPT=53 LEN=55
-Jan 27 23:01:28.910095 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=75 TOS=0x00 PREC=0x00 TTL=64 ID=32842 DF PROTO=UDP SPT=45686 DPT=53 LEN=55
-Jan 27 23:01:33.770124 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=68 TOS=0x00 PREC=0x00 TTL=64 ID=33241 PROTO=UDP SPT=53075 DPT=53 LEN=48
-Jan 27 23:01:38.770094 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=68 TOS=0x00 PREC=0x00 TTL=64 ID=33489 PROTO=UDP SPT=53075 DPT=53 LEN=48
-  -- end of the above dmesg output
-Jan 27 23:01:46.802095 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=70 TOS=0x00 PREC=0x00 TTL=64 ID=34033 DF PROTO=UDP SPT=42331 DPT=53 LEN=50
-Jan 27 23:01:46.802135 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=70 TOS=0x00 PREC=0x00 TTL=64 ID=34034 DF PROTO=UDP SPT=42331 DPT=53 LEN=50
-```
-
-The two relevent packets are likely:
-
-```
-Jan 27 23:01:33.770124 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=68 TOS=0x00 PREC=0x00 TTL=64 ID=33241 PROTO=UDP SPT=53075 DPT=53 LEN=48
-Jan 27 23:01:38.770094 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=68 TOS=0x00 PREC=0x00 TTL=64 ID=33489 PROTO=UDP SPT=53075 DPT=53 LEN=48
-```
-
-where the second is exactly 5 seconds after the first.
-
-### Including input logging
-
-When adding `iptables -I OUTPUT 1 -j LOG`, I observe during the hang:
+I observe during the hang:
 
 ```
 Jan 27 23:24:16.210162 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1 LEN=68 TOS=0x00 PREC=0x00 TTL=64 ID=57836 PROTO=UDP SPT=33554 DPT=53 LEN=48
@@ -163,11 +105,8 @@ Jan 27 23:24:21.210106 ares kernel: IN= OUT=enp3s0 SRC=192.168.1.100 DST=1.1.1.1
 Jan 27 23:24:21.210645 ares kernel: IN=enp3s0 OUT= MAC=d0:50:99:5c:cf:1a:44:d9:e7:41:32:61:08:00 SRC=1.1.1.1 DST=192.168.1.100 LEN=132 TOS=0x00 PREC=0x00 TTL=54 ID=24125 DF PROTO=UDP SPT=53 DPT=33554 LEN=112
 ```
 
-The corresponding Wireshark file is `dig-5-seconds-hang-wireshark-capture-investigation-with-iptables-logging-including-input.pcapng`.
-In there, we can see (again with filter `dns.qry.name == "ifconfig.me"`) the second outgoing an incoming packet.
+In the corresponding Wireshark capture below, we can see (with filter `dns.qry.name == "ifconfig.me"`) the two packets from after then hang.
 But the first outgoing packet is not present!
-
-The relevant Wireshark output is:
 
 ```
 2784  22:24:21.208712960  192.168.1.100 1.1.1.1 DNS 82  Standard query 0x8a93 A ifconfig.me OPT
@@ -176,5 +115,9 @@ The relevant Wireshark output is:
 
 So I suspect that either:
 
-* the packet gets lost in the kernel code path between the iptables layer and the layer Wireshark attaches to
-* the packet get sent, but forever reason doesn't show up in Wireshark (and the problem is the network not giving a response)
+* the packet gets lost in the kernel code path between the iptables layer and the layer that Wireshark attaches to
+* the packet get sent, but forever reason doesn't show up in Wireshark (and the problem is the network not giving a response; unlikely given that the other network card works)
+* the packet gets dropped by the kernel for some legitimate reason (e.g. hardware returning an error), but the kernel fails to report this error anywhere
+
+Which of it could it be?
+How should I investigate deeper?
