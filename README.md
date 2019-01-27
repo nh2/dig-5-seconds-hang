@@ -121,3 +121,11 @@ So I suspect that either:
 
 Which of it could it be?
 How should I investigate deeper?
+
+
+## Other notes
+
+I noticed that the Realtek interface's `iperf3` TCP sending throughput is capped to ~500 Mbit/s on LAN connections and ~250 Mbit/s on WAN connections.
+The Intel interface can send ~1000 Mbit/s to the same targets.
+Both are Gigabit interfaces that should send ~1000 Mbit/s.
+I suspect that the Realtek's speed is slower due to the dropped packets.
