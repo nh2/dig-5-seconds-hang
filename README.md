@@ -1,3 +1,23 @@
+# UPDATE: This investigation is flawed
+
+There was an instance of
+
+```
+tc qdisc add dev enp3s0 root netem loss 5%
+```
+
+in effect that I wasn't aware of while investigating.
+
+This dropped 5% of the packets, and also explains why it was on that interface only.
+
+Well, at least I know very well now at which level `tc` operates.
+
+My bad, and sorry for the noise.
+
+The original investigation is retained below for posterity.
+
+---
+
 ## Problem
 
 Some DNS requests on my machine take 5 seconds when a specific network interface is used.
